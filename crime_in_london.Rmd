@@ -2,29 +2,102 @@
 title: "Crime in London"
 author: "Valeria Cortez"
 date: "07/10/2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#Visualising crime in London by borough in R
+
+##Accessing the data
+```{r crime_data}
+#Reads csv
+crime_data <- read.csv("./data/crime_data.csv")
+#Changes the name for the headings
+names(crime_data) <- c("borough",2009:2013)
+#Shows the first 5 entries
+head(crime_data,5)
 ```
 
-## R Markdown
+```{r spatial_data}
+#Reads boroughs data as SpatialPolygonsDataFrame
+library(rgdal)
+london_boroughs <- readOGR(dsn = "data/Map_data/LondonBoroughs.shp") 
+head(london_boroughs@data,2)
+```
+```{r joining_the_data}
+#joins london_boroughs@data with crime_data based on the borough names
+library(dplyr)
+london_boroughs@data <- left_join(london_boroughs@data, crime_data, by = c('name' = 'borough'))
+head(london_boroughs@data)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```
+```{r preparing_data}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#passes the spatial data as a data.frame rather than a spatial object
+library(ggplot2)
+london_boroughs_f <- fortify(london_boroughs)
 
-```{r cars}
-summary(cars)
+# allocate an id variable to the sp data
+london_boroughs$id <- row.names(london_boroughs)
+
+# joins the data
+london_boroughs_f <- left_join(london_boroughs_f, london_boroughs@data) 
+
+head(london_boroughs_f,5)
+
+```
+```{r map_2013}
+#plots the boroughs with highest crime rate of 100
+ggplot(london_boroughs_f, aes(long, lat, group = group, fill=`2013`)) +
+  geom_polygon() + geom_path(colour="white", lwd=0.05) + coord_equal() +
+  labs(x = "lat", y = "lon",
+       fill = "Crime rate") +
+  scale_fill_gradient2(low = "#BDBDBD",high = "#2196F3", # colors
+                        name = "Crime rate", limits = c(0, 140)) + # legend options
+  ggtitle("Crime rate (2013) ") +
+  theme(axis.text = element_blank(), # change the theme options
+        axis.title = element_blank(), # remove axis titles
+        axis.ticks = element_blank()) # remove axis ticks
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r highest_crime_rate_2013_london}
+#plots the boroughs with highest crime rate of 100
+ggplot(london_boroughs_f, aes(long, lat, group = group, fill=`2013`>90)) +
+  geom_polygon() + geom_path(colour="white", lwd=0.05) + coord_equal() +
+  labs(x = "lat", y = "lon",
+       fill = "Crime rate > 90") +
+  scale_fill_manual(values=c("#BDBDBD","#2196F3")) +
+  ggtitle("Crime rate > 90 (2013) ") +
+  theme(axis.text = element_blank(), # change the theme options
+        axis.title = element_blank(), # remove axis titles
+        axis.ticks = element_blank()) # remove axis ticks
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+#changes the structure of the dataset to be able to plot it to a graph
+library(tidyr)
+london_boroughs_f_long <- gather(london_boroughs_f, crime_rate_year, crime_rate, -long, -lat, -order, -hole,-piece,-id,-group,-ons_label,-name,-Partic_Per,-Pop_2001, -PopDensity, -AREA, -PERIMETER, -PopDen)
+head(london_boroughs_f_long)
+```
+
+
+```{r map_london_by_year, fig.cap="Crime rate by borough from 2009 to 2013"}
+
+ggplot(data = london_boroughs_f_long, # the input data
+       aes(x = long, y = lat, fill = crime_rate, group = group)) + # define variables
+  geom_polygon() + # plot the boroughs
+  geom_path(colour="white", lwd=0.05) + # borough borders
+  coord_equal() + # fixed x and y scales
+  facet_wrap(~ crime_rate_year) + # one plot per year
+  scale_fill_gradient2(low = "#64B5F6",high = "#2196F3", # colors
+                        name = "Crime rate") + # legend options
+  theme(axis.text = element_blank(), # change the theme options
+        axis.title = element_blank(), # remove axis titles
+        axis.ticks = element_blank()) # remove axis ticks
+
+
+
+```
