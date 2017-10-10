@@ -54,7 +54,7 @@ ggplot(london_boroughs_f, aes(long, lat, group = group, fill=`2013`)) +
   labs(x = "lat", y = "lon",
        fill = "Crime rate") +
   scale_fill_gradient2(low = "#BDBDBD",high = "#2196F3", # colors
-                        name = "Crime rate", limits = c(0, 140)) + # legend options
+                        name = "Crime rate") + # legend options
   ggtitle("Crime rate (2013) ") +
   theme(axis.text = element_blank(), # change the theme options
         axis.title = element_blank(), # remove axis titles
