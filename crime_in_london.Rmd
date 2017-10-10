@@ -63,7 +63,7 @@ ggplot(london_boroughs_f, aes(long, lat, group = group, fill=`2013`)) +
 
 
 ```{r highest_crime_rate_2013_london}
-#plots the boroughs with highest crime rate of 100
+#plots the boroughs with crime rates above 90
 ggplot(london_boroughs_f, aes(long, lat, group = group, fill=`2013`>90)) +
   geom_polygon() + geom_path(colour="white", lwd=0.05) + coord_equal() +
   labs(x = "lat", y = "lon",
